@@ -14,6 +14,8 @@ import java.io.PrintWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class PatchFileV3Translator implements PatchFileParser {
 
@@ -26,6 +28,9 @@ public class PatchFileV3Translator implements PatchFileParser {
     private boolean encounteredBegin = false;
 
     private final Translator translator;
+
+    private static final String LINE_FEED = "\n";
+    private static final int MAX_LINE_LENGTH = 80;
 
     @Inject
     protected PatchFileV3Translator(Translator translator){
@@ -42,24 +47,29 @@ public class PatchFileV3Translator implements PatchFileParser {
                 if (line.equals(header)) {
                     // Basically, validate the file
                     encounteredHeader = true;
-                    printWriter.println(line);
+                    printWriter.print(line + LINE_FEED);
                 } else if (encounteredHeader && line.equals(beginMarker)) {
                     // We've found a string
                     encounteredBegin = true;
-                    printWriter.println(line);
+                    printWriter.print(line + LINE_FEED);
                 } else if (encounteredBegin && StringUtils.isNotBlank(line) && !line.startsWith(contextMarker)) {
                     // Here we go (add lines until we find the end marker)
                     aggregator.appendCurrent(line);
-                    printWriter.println(line);
+                    printWriter.print(line + LINE_FEED);
                 } else if (line.startsWith(contextMarker)) {
                     // We are done loading that translation and can begin searching for the end marker
-                    printWriter.println(line);
+                    printWriter.print(line + LINE_FEED);
                 } else if (StringUtils.isBlank(line)) {
                     // Here is where we will insert our translated text
                     String text = aggregator.finishCurrent();
                     Translation translation = new Translation(text, translator.translate(text));
                     aggregator.add(translation);
-                    printWriter.println(translation.getTranslation());
+                    List<String> pieces = cutString(translation.getTranslation(), MAX_LINE_LENGTH);
+                    if (pieces != null) {
+                        for (String piece : pieces) {
+                            printWriter.print(piece + LINE_FEED);
+                        }
+                    }
                 } else if (line.equals(endMarker)) {
                     // We are totally done with this translation (Hooray!)
                     encounteredBegin = false;
@@ -69,5 +79,20 @@ public class PatchFileV3Translator implements PatchFileParser {
             throw new RuntimeException(String.format("Error while parsing line '%s'", line), e);
         }
         return aggregator.getTranslations();
+    }
+
+    protected List<String> cutString(String text, int lineLengthMax) {
+        if (StringUtils.isBlank(text)) {
+            return null;
+        }
+        List<String> res = new ArrayList<>();
+
+        Pattern p = Pattern.compile(String.format("(\\b.{1,%s})\\b\\W?", lineLengthMax - 1));
+        Matcher m = p.matcher(text);
+
+        while(m.find()) {
+            res.add(StringUtils.trimToEmpty(m.group()));
+        }
+        return res;
     }
 }

@@ -1,0 +1,9 @@
+> RPGMAKER TRANS PATCH FILE VERSION 3.2
+> BEGIN STRING
+ホーイ市・駐屯地
+> CONTEXT: Map101/display_name/ < UNTRANSLATED
+It seemed to Wanda that her daughter had more than enough crayons, they were
+strewn across the bedroom floor and some of them were broken, and, worse still,
+someone had used the stub of a red crayon to mark a sinister smiley face on the
+wall.
+> END STRING
