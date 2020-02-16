@@ -12,11 +12,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 import translation.Translation;
 import translation.translators.Translator;
 
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
@@ -52,20 +48,16 @@ public class PatchFileV3TranslatorTest {
     }
 
     @Test
-    public void canParseSingleTranslation() throws FileNotFoundException {
-        // Given
-        File patchFile = new File("src/test/resources/patchfiles/single.txt");
-
-        // When
+    public void canParseSingleTranslation() {
         PatchFileV3Translator parser = new PatchFileV3Translator(translator);
+        List<Translation> translations = parser.parse(new StringReader(Inputs.SHORT), new StringWriter());
 
-        // Then
-        List<Translation> translations = parser.parse(new FileReader(patchFile), new StringWriter());
         assertEquals(1, translations.size());
     }
 
     @Test
-    public void canWriteSingleTranslation() throws IOException {
+    public void canWriteSingleTranslation() {
+        StringWriter writer = new StringWriter();
         String expected =
             "> RPGMAKER TRANS PATCH FILE VERSION 3.2\n" +
             "> BEGIN STRING\n" +
@@ -74,16 +66,10 @@ public class PatchFileV3TranslatorTest {
             "ホーイ市・駐屯地\n" +
             "> END STRING\n" +
             "";
-        // Given
-        File patchFile = new File("src/test/resources/patchfiles/single.txt");
-        StringWriter writer = new StringWriter();
-
-        // When
         when(translator.translate(anyString())).then(i -> i.getArgument(0, String.class));
         PatchFileV3Translator parser = new PatchFileV3Translator(translator);
+        parser.parse(new StringReader(Inputs.SHORT), writer);
 
-        // Then
-        parser.parse(new FileReader(patchFile), writer);
         assertEquals(expected, writer.toString());
     }
 
@@ -119,8 +105,7 @@ public class PatchFileV3TranslatorTest {
     }
 
     @Test
-    public void canWriteLongSentencePieces() throws FileNotFoundException {
-        File patchFile = new File("src/test/resources/patchfiles/single.txt");
+    public void canWriteLongSentencePieces() {
         String longSentence =
             "It seemed to Wanda that her daughter had more than enough crayons, they were" +
             " strewn across the bedroom floor and some of them were broken, and, worse still," +
@@ -147,7 +132,7 @@ public class PatchFileV3TranslatorTest {
         when(translator.translate(anyString())).thenReturn(longSentence);
         PatchFileV3Translator parser = Mockito.spy(new PatchFileV3Translator(translator));
         when(parser.cutString(longSentence, LINE_LIMIT)).thenReturn(pieces);
-        parser.parse(new FileReader(patchFile), writer);
+        parser.parse(new StringReader(Inputs.SHORT), writer);
         assertEquals(expected, writer.toString());
     }
 }
